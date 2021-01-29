@@ -16,11 +16,12 @@ Example usage:
 
 from __future__ import (absolute_import, division, print_function)
 
+from contextlib import contextmanager
 import os.path
 import re
+import signal
 from subprocess import Popen, PIPE
 import sys
-import signal
 
 __version__ = 'rifle 1.9.3'
 
@@ -114,15 +115,13 @@ def squash_flags(flags):
     return ''.join(f for f in flags if f not in exclude)
 
 
-class SigSTPDefaultHandler(object):
-    def __init__(self):
-        self.prev_handler = None
-
-    def __enter__(self):
-        self.prev_handler = signal.signal(signal.SIGTSTP, signal.SIG_DFL)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        signal.signal(signal.SIGTSTP, self.prev_handler)
+@contextmanager
+def _sigSTP_default_handler(object):
+    prev_handler = signal.signal(signal.SIGTSTP, signal.SIG_DFL)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGTSTP, prev_handler)
 
 
 class Rifle(object):  # pylint: disable=too-many-instance-attributes
