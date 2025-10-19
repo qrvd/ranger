@@ -442,7 +442,8 @@ class Actions(  # pylint: disable=too-many-instance-attributes,too-many-public-m
 
         def execute():
             return self.rifle.execute(
-                filenames, number=mode, label=label, flags=flags, mimetype=None
+                filenames, number=mode, label=label, flags=flags, mimetype=None,
+                skip_ask=True
             )
         try:
             return execute()
