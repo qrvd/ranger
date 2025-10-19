@@ -276,9 +276,9 @@ class cd(Command):
 
         if self.fm.settings.cd_bookmarks:
             paths[0:0] = [
-                os.path.relpath(v.path, paths_rel) if paths_rel else v.path
+                os.path.relpath(str(v), paths_rel) if paths_rel else str(v)
                 for v in self.fm.bookmarks.dct.values() for path in paths
-                if v.path.startswith(os.path.join(paths_rel, path) + sep)
+                if str(v).startswith(os.path.join(paths_rel, path) + sep)
             ]
 
         if not paths:

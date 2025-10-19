@@ -15,13 +15,23 @@ from ranger.core.shared import FileManagerAware
 ALLOWED_KEYS = string.ascii_letters + string.digits + "`'"
 
 
+# pylint: disable=too-few-public-methods
+class InvalidBookmark(object):
+
+    def __init__(self, value):
+        self._value = value
+
+    def __str__(self):
+        return self._value
+
+
 class Bookmarks(FileManagerAware):
     """Bookmarks is a container which associates keys with bookmarks.
 
     A key is a string with: len(key) == 1 and key in ALLOWED_KEYS.
 
     A bookmark is an object with: bookmark == bookmarktype(str(instance))
-    Which is true for str or FileSystemObject. This condition is required
+    Which is true for str, FileSystemObject, and InvalidBookmark. This condition is required
     so bookmark-objects can be saved to and loaded from a file.
 
     Optionally, a bookmark.go() method is used for entering a bookmark.
@@ -93,6 +103,9 @@ class Bookmarks(FileManagerAware):
         if key in self.dct:
             value = self.dct[key]
             if self._validate(value):
+                # Reload invalid bookmarks when they become valid
+                if isinstance(value, InvalidBookmark):
+                    value = self.dct[key] = self._construct(str(value))
                 return value
             else:
                 raise KeyError("Cannot open bookmark: `%s'!" % key)
@@ -125,7 +138,7 @@ class Bookmarks(FileManagerAware):
                 self.dct[key] = file_new
                 changed = True
             elif bfile.path.startswith(path_old + os.path.sep):
-                self.dct[key] = self.bookmarktype(file_new.path + bfile.path[len(path_old):])
+                self.dct[key] = self._construct(file_new.path + bfile.path[len(path_old):])
                 changed = True
         if changed:
             self.save()
@@ -239,7 +252,7 @@ class Bookmarks(FileManagerAware):
                     if self.load_pattern.match(line):
                         key, value = line[0], line[2:-1]
                         if key in ALLOWED_KEYS:
-                            dct[key] = self.bookmarktype(value)
+                            dct[key] = self._construct(value)
         except OSError as ex:
             self.fm.notify('Bookmarks error: {0}'.format(str(ex)), bad=True)
             return None
@@ -268,3 +281,9 @@ class Bookmarks(FileManagerAware):
 
     def _validate(self, value):
         return os.path.isdir(str(value))
+
+    def _construct(self, value):
+        if self._validate(value):
+            return self.bookmarktype(value)
+        else:
+            return InvalidBookmark(value)
